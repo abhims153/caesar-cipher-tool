@@ -1,1 +1,511 @@
-# caesar-cipher-tool
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Caesar Cipher</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --panel: #0f0f1a;
+    --border: #1a1a2e;
+    --green: #00ff88;
+    --green-dim: #00ff8844;
+    --green-glow: #00ff8822;
+    --red: #ff3366;
+    --yellow: #ffcc00;
+    --text: #c8d8c8;
+    --muted: #445544;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 30px 16px;
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 40px, #00ff8804 40px, #00ff8804 41px),
+      repeating-linear-gradient(90deg, transparent, transparent 40px, #00ff8804 40px, #00ff8804 41px);
+  }
+
+  /* Scanline overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      to bottom,
+      transparent 0px,
+      transparent 3px,
+      #00000022 3px,
+      #00000022 4px
+    );
+    pointer-events: none;
+    z-index: 999;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+
+  .title {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(1.6rem, 5vw, 2.8rem);
+    font-weight: 900;
+    color: var(--green);
+    text-shadow: 0 0 20px var(--green), 0 0 60px var(--green-dim);
+    letter-spacing: 4px;
+    animation: flicker 6s infinite;
+  }
+
+  .subtitle {
+    font-size: 0.75rem;
+    color: var(--muted);
+    letter-spacing: 6px;
+    margin-top: 6px;
+    text-transform: uppercase;
+  }
+
+  @keyframes flicker {
+    0%, 95%, 100% { opacity: 1; }
+    96% { opacity: 0.7; }
+    97% { opacity: 1; }
+    98% { opacity: 0.5; }
+    99% { opacity: 1; }
+  }
+
+  .container {
+    width: 100%;
+    max-width: 700px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .panel::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--green), transparent);
+  }
+
+  .panel-label {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 4px;
+    color: var(--green);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    opacity: 0.7;
+  }
+
+  textarea {
+    width: 100%;
+    background: #07070f;
+    border: 1px solid #1a2a1a;
+    border-radius: 3px;
+    color: var(--green);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.95rem;
+    padding: 12px;
+    resize: vertical;
+    min-height: 90px;
+    outline: none;
+    transition: border-color 0.2s;
+    caret-color: var(--green);
+  }
+
+  textarea:focus {
+    border-color: var(--green);
+    box-shadow: 0 0 10px var(--green-glow);
+  }
+
+  textarea::placeholder { color: var(--muted); }
+
+  .shift-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+  }
+
+  .shift-label {
+    font-size: 0.8rem;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  input[type="range"] {
+    flex: 1;
+    min-width: 120px;
+    -webkit-appearance: none;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--green);
+    cursor: pointer;
+    box-shadow: 0 0 8px var(--green);
+  }
+
+  .shift-val {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.1rem;
+    color: var(--green);
+    width: 28px;
+    text-align: center;
+  }
+
+  .btn-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+  }
+
+  button {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 2px;
+    padding: 10px 20px;
+    border: 1px solid var(--green);
+    background: transparent;
+    color: var(--green);
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-transform: uppercase;
+  }
+
+  button:hover {
+    background: var(--green);
+    color: #000;
+    box-shadow: 0 0 16px var(--green);
+  }
+
+  button.decrypt-btn {
+    border-color: var(--yellow);
+    color: var(--yellow);
+  }
+  button.decrypt-btn:hover {
+    background: var(--yellow);
+    color: #000;
+    box-shadow: 0 0 16px var(--yellow);
+  }
+
+  button.brute-btn {
+    border-color: var(--red);
+    color: var(--red);
+  }
+  button.brute-btn:hover {
+    background: var(--red);
+    color: #fff;
+    box-shadow: 0 0 16px var(--red);
+  }
+
+  button.clear-btn {
+    border-color: var(--muted);
+    color: var(--muted);
+    margin-left: auto;
+  }
+  button.clear-btn:hover {
+    background: var(--muted);
+    color: #000;
+    box-shadow: none;
+  }
+
+  .output-panel { display: none; }
+  .output-panel.visible { display: block; }
+
+  .output-text {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1rem;
+    color: var(--green);
+    word-break: break-all;
+    line-height: 1.7;
+    padding: 12px;
+    background: #07070f;
+    border: 1px solid #1a2a1a;
+    border-radius: 3px;
+    min-height: 60px;
+    white-space: pre-wrap;
+  }
+
+  .output-text.yellow { color: var(--yellow); }
+  .output-text.red-text { color: var(--red); }
+
+  .copy-row {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 10px;
+  }
+
+  .brute-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 340px;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+
+  .brute-grid::-webkit-scrollbar { width: 4px; }
+  .brute-grid::-webkit-scrollbar-track { background: #07070f; }
+  .brute-grid::-webkit-scrollbar-thumb { background: var(--muted); border-radius: 2px; }
+
+  .brute-item {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 8px 10px;
+    background: #07070f;
+    border: 1px solid #1a2a1a;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+
+  .brute-item:hover { border-color: var(--red); }
+
+  .brute-shift {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.7rem;
+    color: var(--red);
+    min-width: 36px;
+    padding-top: 2px;
+  }
+
+  .brute-result {
+    font-size: 0.85rem;
+    color: var(--text);
+    word-break: break-all;
+    line-height: 1.5;
+  }
+
+  .tag {
+    display: inline-block;
+    font-size: 0.6rem;
+    letter-spacing: 2px;
+    padding: 2px 8px;
+    border-radius: 2px;
+    margin-bottom: 10px;
+  }
+
+  .tag-encrypt { background: var(--green-dim); color: var(--green); border: 1px solid var(--green); }
+  .tag-decrypt { background: #ffcc0022; color: var(--yellow); border: 1px solid var(--yellow); }
+  .tag-brute   { background: #ff336622; color: var(--red); border: 1px solid var(--red); }
+
+  .status-bar {
+    text-align: center;
+    font-size: 0.7rem;
+    color: var(--muted);
+    letter-spacing: 2px;
+    margin-top: 10px;
+  }
+
+  .copied-toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--green);
+    color: #000;
+    font-family: 'Orbitron', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 3px;
+    padding: 8px 20px;
+    border-radius: 3px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+    z-index: 1000;
+  }
+
+  .copied-toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="title">CAESAR CIPHER</div>
+  <div class="subtitle">Cryptography Terminal v1.0</div>
+</header>
+
+<div class="container">
+
+  <!-- Input Panel -->
+  <div class="panel">
+    <div class="panel-label">// Input Message</div>
+    <textarea id="inputText" placeholder="Type your message here..."></textarea>
+
+    <div class="shift-row">
+      <span class="shift-label">SHIFT KEY:</span>
+      <input type="range" id="shiftSlider" min="1" max="25" value="3" oninput="updateShift(this.value)">
+      <span class="shift-val" id="shiftDisplay">3</span>
+    </div>
+
+    <div class="btn-row">
+      <button onclick="encrypt()">⚡ Encrypt</button>
+      <button class="decrypt-btn" onclick="decrypt()">🔓 Decrypt</button>
+      <button class="brute-btn" onclick="bruteForce()">💀 Brute Force</button>
+      <button class="clear-btn" onclick="clearAll()">✕ Clear</button>
+    </div>
+  </div>
+
+  <!-- Encrypt Output -->
+  <div class="panel output-panel" id="encryptPanel">
+    <div class="panel-label">// Output</div>
+    <span class="tag tag-encrypt">ENCRYPTED</span>
+    <div class="output-text" id="encryptOutput"></div>
+    <div class="copy-row">
+      <button onclick="copyText('encryptOutput')">⎘ Copy</button>
+    </div>
+  </div>
+
+  <!-- Decrypt Output -->
+  <div class="panel output-panel" id="decryptPanel">
+    <div class="panel-label">// Output</div>
+    <span class="tag tag-decrypt">DECRYPTED</span>
+    <div class="output-text yellow" id="decryptOutput"></div>
+    <div class="copy-row">
+      <button class="decrypt-btn" onclick="copyText('decryptOutput')">⎘ Copy</button>
+    </div>
+  </div>
+
+  <!-- Brute Force Output -->
+  <div class="panel output-panel" id="brutePanel">
+    <div class="panel-label">// Brute Force — All 25 Possible Keys</div>
+    <span class="tag tag-brute">CRACKING</span>
+    <div class="brute-grid" id="bruteGrid"></div>
+  </div>
+
+</div>
+
+<div class="status-bar" id="statusBar">READY — AWAITING INPUT</div>
+<div class="copied-toast" id="toast">COPIED TO CLIPBOARD</div>
+
+<script>
+  function updateShift(val) {
+    document.getElementById('shiftDisplay').textContent = val;
+  }
+
+  function getShift() {
+    return parseInt(document.getElementById('shiftSlider').value);
+  }
+
+  function caesarShift(text, shift) {
+    shift = ((shift % 26) + 26) % 26;
+    return text.split('').map(ch => {
+      if (ch >= 'A' && ch <= 'Z') {
+        return String.fromCharCode(((ch.charCodeAt(0) - 65 + shift) % 26) + 65);
+      } else if (ch >= 'a' && ch <= 'z') {
+        return String.fromCharCode(((ch.charCodeAt(0) - 97 + shift) % 26) + 97);
+      }
+      return ch;
+    }).join('');
+  }
+
+  function getInput() {
+    return document.getElementById('inputText').value.trim();
+  }
+
+  function hideAll() {
+    document.getElementById('encryptPanel').classList.remove('visible');
+    document.getElementById('decryptPanel').classList.remove('visible');
+    document.getElementById('brutePanel').classList.remove('visible');
+  }
+
+  function encrypt() {
+    const text = getInput();
+    if (!text) { setStatus('⚠️ NO INPUT PROVIDED'); return; }
+    hideAll();
+    const shift = getShift();
+    const result = caesarShift(text, shift);
+    document.getElementById('encryptOutput').textContent = result;
+    document.getElementById('encryptPanel').classList.add('visible');
+    setStatus(✓ ENCRYPTED WITH SHIFT KEY: ${shift});
+  }
+
+  function decrypt() {
+    const text = getInput();
+    if (!text) { setStatus('⚠️ NO INPUT PROVIDED'); return; }
+    hideAll();
+    const shift = getShift();
+    const result = caesarShift(text, 26 - shift);
+    document.getElementById('decryptOutput').textContent = result;
+    document.getElementById('decryptPanel').classList.add('visible');
+    setStatus(✓ DECRYPTED WITH SHIFT KEY: ${shift});
+  }
+
+  function bruteForce() {
+    const text = getInput();
+    if (!text) { setStatus('⚠️ NO INPUT PROVIDED'); return; }
+    hideAll();
+    const grid = document.getElementById('bruteGrid');
+    grid.innerHTML = '';
+    for (let s = 1; s <= 25; s++) {
+      const result = caesarShift(text, 26 - s);
+      const item = document.createElement('div');
+      item.className = 'brute-item';
+      item.innerHTML = <span class="brute-shift">K=${s}</span><span class="brute-result">${escapeHtml(result)}</span>;
+      item.title = 'Click to copy';
+      item.onclick = () => { navigator.clipboard.writeText(result); showToast(); };
+      grid.appendChild(item);
+    }
+    document.getElementById('brutePanel').classList.add('visible');
+    setStatus('💀 ALL 25 KEYS CRACKED — CLICK ANY ROW TO COPY');
+  }
+
+  function clearAll() {
+    document.getElementById('inputText').value = '';
+    hideAll();
+    setStatus('READY — AWAITING INPUT');
+  }
+
+  function copyText(id) {
+    const text = document.getElementById(id).textContent;
+    navigator.clipboard.writeText(text).then(showToast);
+  }
+
+  function showToast() {
+    const t = document.getElementById('toast');
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 1800);
+  }
+
+  function setStatus(msg) {
+    document.getElementById('statusBar').textContent = msg;
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+</script>
+</body>
+</html>
